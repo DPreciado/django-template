@@ -1,0 +1,387 @@
+{% extends 'base.html' %} {% load static %}
+
+{% block title %}
+    Alta de compra
+{% endblock %}
+
+
+
+{% block css %}
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.0.0/dist/css/tom-select.css" rel="stylesheet">
+{% endblock %}
+
+
+
+{% block content %} 
+    {% load crispy_forms_tags %}
+
+    <section class="clean-block clean-form dark">
+        <div class="container">
+            <div class="row" style="margin-right: 0px;margin-left: 0px;">
+                <div class="col-md-12" style="margin-bottom: 25px;padding-left: 5%;font-size: 21px;margin-top: 0px;">
+                    <a class="anone" href="{% url 'examplePurchases:index' %}">
+                        <i class="fas fa-long-arrow-alt-left"></i>
+                        <span>&nbsp;Volver</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="block-heading" style="padding-top: 0px;">
+                <h2 class="text-primary">
+                    Añadir producto a la compra
+
+                    <br>
+                </h2>
+
+                <p>
+                    Los que tengan el * son datos que se tienen que rellenar obligatoriamente
+                </p>
+            </div>
+
+            <form style="max-width: 700px;" role="form" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <strong>{{ form.non_field_errors }}</strong>
+                        </div>
+                {% endif %}
+
+                {% for  field in form %}
+                    {% if field.name != 'total_price' %}
+                        <div class="form-group mb-3">
+                            <strong>{{ field|as_crispy_field }}</strong>
+                        </div> 
+                    {% endif %}
+
+
+                {% endfor %}
+
+                <div class="form-group mb-3 text-end">
+                    <button id="add_product" class="btn btn-success text-white" type="button">
+                        <i class="fas fa-plus"></i> Agregar Producto
+                    </button>
+                </div>
+
+                <hr style="margin-top: 20px;margin-bottom: 10px;">
+
+                <!-- Product 1 N to N form -->
+                <div id="productContainer"></div>
+                <!-- End of Product 1 N to N form -->
+
+                <span id="final"></span>
+
+                <div class="form-group mt-3 text-end">
+                    <b>
+                        <p id="total_price" class="font-weight-bold" style="font-size: 18px;">
+                            Precio Total: $0
+                        </p>
+                    </b>
+
+                    {{ form.total_price.as_hidden }}<script>document.getElementById("id_total_price").value = 0;</script>
+                </div>
+
+                <hr style="margin-top: 20px;margin-bottom: 10px;">
+
+                <div class="form-group mb-3">
+                    <p id="errorMsg" class="text-danger" style="display:none">
+                        Existen dos productos con el mismo nombre en la compra:<br>
+                    </p>
+
+                    <button class="btn btn-primary d-block w-100" id="submitButton" type="submit">
+                        <i class="fas fa-save"></i>
+                        &nbsp;Guardar
+                    </button>
+
+                    <a class="btn btn-danger d-block w-100" role="button" href="#" style="margin-top: 15px;">
+                        <i class="fas fa-arrow-left"></i> &nbsp;Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+
+
+
+{% block js %}
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.0.0/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        let totalPrice = 0;
+        let productContainer = document.getElementById("productContainer");
+        let newSkuBoolArray = [];
+        let newSkuValuesArray = [];
+        let tomSelects = [];
+        let jsonValue = {};
+        let productCount = 0;
+
+        // START OF FUNCTIONS NEEDED TO ADD AND REMOVE PRODUCTS
+
+        // Input HTML declaration
+        function generateHTML(i) {
+            let heading =  			   `<div id="form_div_${i}" class="form_div_counter">
+                                            <div style="position:relative;">
+                                                <h2 class="text-dark" id="product_heading_${i}" style="font-weight:100;font-size: 24px;margin-bottom: 20px;margin-top: 30px;">
+                                                    Producto ${document.querySelectorAll('.form_div_counter').length + 1}
+                                                </h2>
+                                                <button class="btn btn-danger" id="delete_product_${i}" style="position:absolute;right:0px; top:0px;" type="button">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </div>`
+            let inputLabelName = 	       `<label class="form-label" id="lbl_name_${i}">Nombre*</label>`
+            let inputSelectName =  	       `<select id="product_name_${i}" name="product_name_${i}" onchange="validateAllSelectValues()" class="form-select mb-3" style="margin-bottom:16px;" required>
+                                                <option value="" selected disabled>Seleccione un producto</option>
+                                                {% for producto in inventario %}
+                                                    <option value="{{ producto.id }}">
+                                                        {{ producto.nombre }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>`
+            let inputLabelQuantity = 	   `<div class="row">
+                                                <div class="col-sm-6" id="anchorSKU_${i}">
+                                                    <label class="form-label mb-2" id="lbl_qty_${i}">Cantidad*</label>`
+            let inputQuantity = 		            `<input type="number" id="quantity_${i}" name="quantity_${i}" class="form-control mb-3" placeholder="$0" style="margin-bottom:16px;" min="0" required>
+                                                </div>`
+            let inputLabelPrice = 	            `<div class="col-sm-6">
+                                                    <label class="form-label mb-2" id="lbl_price_${i}">Precio*</label>`
+            let inputNumberPrice = 		           `<input type="number" id="price_${i}" name="price_${i}" class="form-control mb-3" placeholder="$0" style="margin-bottom:16px;" required>
+                                                </div>
+                                            </div>
+                                        </div>`
+
+            let form = heading + inputLabelName + inputSelectName + inputLabelQuantity + inputQuantity + inputLabelPrice + inputNumberPrice;
+            return form;
+        }
+
+        // Add event listener to the select so the sku can be shown
+        function showSkuOfNewProduct(i) {
+            if(`#product_name_${i}` != null) {
+
+                // TomSelect Logic
+                tomSelects[i] = new TomSelect(`#product_name_${i}`, {
+                    create: function(input) {
+                        if(newSkuBoolArray[i] != true) {
+                            
+                            // Set this array to true so that the sku field isn't inserted twice
+                            newSkuBoolArray[i] = true;
+                            jsonValue = {value:input};
+                            newSkuValuesArray[i] = jsonValue.value
+
+                            // Create the sku field's html
+                            let newSkuLabel = 	   `<div class="col-sm-12">
+                                                        <label class="form-label" id="lbl_sku_${i}">SKU*</label>`
+                            let newSkuInput =  	        `<input id="sku_${i}" name="sku_${i}" class="form-control mb-3" style="margin-bottom:16px;" placeholder="Identificador del producto" required>
+                                                    </div>`
+                            let skuHtml = newSkuLabel + newSkuInput
+
+                            // Get the anchor element
+                            let anchorElement = document.getElementById(`anchorSKU_${i}`);
+
+                            // Insert the new input before the anchor element
+                            anchorElement.insertAdjacentHTML("beforebegin", skuHtml);
+                        }
+                        return {value:input, text:input}
+                    },
+                    createOnBlur: true,
+                    openOnFocus: true,
+                    maxItems: 1,
+                    persist: false,
+                    placeholder: "Seleccione un producto",
+                    selectOnTab: true,
+                    sortField: {
+                        field: "text",
+                        direction: "asc"
+                    }
+                });
+
+                // Style the select that tomSelect creates
+                $(`#product_name_${i}`).next().attr("style", "padding:0px !important; border:1px;");
+                
+                // Add a change listener to the select so that we can see if its value is new or already in 
+                // our db. If the sku field's not new, we remove the sku field
+                document.getElementById(`product_name_${i}`).addEventListener("change", function() {
+                    if(newSkuValuesArray[i] != this.value && document.getElementById(`sku_${i}`) != null) {
+                        document.getElementById(`sku_${i}`).remove();
+                        document.getElementById(`lbl_sku_${i}`).remove();
+                        newSkuBoolArray[i] = false;
+                    }
+                });
+            }
+        }
+
+        // Add logic to the delete button
+        function addDeleteEventListener(i, totalPrice) {
+
+            // Calculate the new total price upon deletion of a product in the current purchase
+            document.getElementById(`delete_product_${i}`).addEventListener("click", function() {
+            
+                // Get this clicked button's id
+                let deletedIndex = this.id.split("_")[2];            
+
+                // Remove the currently iterated product
+                document.getElementById(`form_div_${deletedIndex}`).remove();
+
+                // Change the numbered titles of each N form
+                changeFormsTitles();
+
+                // Verify that selects aren't repeated
+                validateAllSelectValues();
+
+                recalculateTotalPrice(totalPrice, productCount);
+            });
+        }
+
+        // Change the numeration of the forms and EventListeners when a product is deleted
+        function changeFormsTitles() {
+
+            // Get each N to 1 form element
+            let nForms = document.querySelectorAll('.form_div_counter');
+
+            // Change the title of the form
+            nForms.forEach(function(element, index) {
+                let idNumber = element.id.split("_")[2];
+                document.getElementById(`product_heading_${idNumber}`).innerHTML = `Producto ${index + 1}`;
+            });
+        }
+
+        // Lower Add Button Declaration
+        function addProductButton() {
+            let addProductButton =      `<div class="form-group mt-3 mb-5 text-end">
+                                            <button id="add_product2" class="btn btn-success text-white" type="button">
+                                                <i class="fas fa-plus"></i> Agregar Producto
+                                            </button>
+                                        </div>`
+            $("#final").html(addProductButton);
+        }
+
+        // END OF FUNCTIONS NEEDED TO ADD AND REMOVE PRODUCTS
+
+
+
+
+        // Add logic to the price input
+        function addPriceEventListener(i, totalPrice) {
+            
+            // Calculate the new total price upon change of price
+            document.getElementById(`price_${i}`).addEventListener("change", function() {
+                recalculateTotalPrice(totalPrice, productCount);
+            });
+        }
+
+        // Add logic to the quantity input
+        function addQtyEventListener(i, totalPrice) {
+                
+            // Calculate the new total price upon change of quantity
+            document.getElementById(`quantity_${i}`).addEventListener("change", function() {
+                recalculateTotalPrice(totalPrice, productCount);
+            });
+        }
+
+        // Update total price
+        function recalculateTotalPrice(totalPrice, productCount) {
+            totalPrice = 0;
+            
+            // Get each N to 1 form element
+            let nForms = document.querySelectorAll('.form_div_counter');
+
+            // Change the title of the form
+            nForms.forEach(function(element) {
+                let idNumber = element.id.split("_")[2];
+
+                if(document.getElementById(`price_${idNumber}`).value != "" && document.getElementById(`quantity_${idNumber}`).value != "")
+                    totalPrice += parseFloat(document.getElementById(`price_${idNumber}`).value) * parseFloat(document.getElementById(`quantity_${idNumber}`).value);
+            });
+            
+            // Change the Hidden Form value
+            totalPrice = totalPrice.toString();
+            document.getElementById("id_total_price").value = totalPrice;
+            
+            // Add commas to the price every 3 digits and change the label value
+            styledTotalPrice = totalPrice.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            document.getElementById("total_price").innerHTML = `Precio Total: $${styledTotalPrice}`;
+        }
+
+
+        
+
+        // Add a product with button #1
+        document.getElementById("add_product").addEventListener("click", function() {
+            
+            productCount++;
+
+            // Insert Form HTML
+            let form = generateHTML(productCount);
+            productContainer.insertAdjacentHTML("beforeend", form);
+
+            // In the first product, insert the Add Product button
+            if(productCount == 1) {
+                addProductButton();
+                addEventListenerToCreateButton2();
+            }
+
+            showSkuOfNewProduct(productCount);
+            addPriceEventListener(productCount, totalPrice);
+            addQtyEventListener(productCount, totalPrice);
+            addDeleteEventListener(productCount, totalPrice);
+        });
+
+        // Logic to add a product with button #2
+        function addEventListenerToCreateButton2() {
+            document.getElementById("add_product2").addEventListener("click", function() {
+
+                productCount++;
+
+                // Insert Form HTML
+                let form = generateHTML(productCount);
+                productContainer.insertAdjacentHTML("beforeend", form);
+        
+                showSkuOfNewProduct(productCount);
+                addPriceEventListener(productCount, totalPrice);
+                addQtyEventListener(productCount, totalPrice);
+                addDeleteEventListener(productCount, totalPrice);
+            });
+        }
+
+        // We validate that there are no repeated values in the selects
+        function validateAllSelectValues() {
+            let selects = document.querySelectorAll('select');
+            let selectValues = [];
+            let repeatedValues = false;
+            let repeatedValuesArray = [];
+
+            // Reset the error message's text
+            document.getElementById("errorMsg").innerHTML = "Existen dos productos con el mismo nombre en la compra:<br>";
+
+            selects.forEach(function(select) {
+
+                selectValues.push(select.value);
+                
+                /* Note: IndexOf returns the first character where our needle is found in the haystack,
+                while LastIndexOf returns the last place in our haystack in which our needle's found,
+                so if the indexes do not match, we know that there is a repeated value */
+                if(selectValues.indexOf(select.value) != selectValues.lastIndexOf(select.value)) {
+                    // If there is a repeated value, we disable the submit button
+                    document.getElementById("submitButton").disabled = true;
+                    document.getElementById("errorMsg").style.display = "inline";
+
+                    // Then we add the repeated value to our error message (if it's not already there)
+                    if(repeatedValuesArray.indexOf(select.value) == -1)
+                        $("#errorMsg").append(`<br>${ 
+                            // Jquery to get the selected option of our currently iterated select
+                            $(`#${select.id} option:selected`).text() 
+                        }`);
+                    
+                    repeatedValues = true;
+                    repeatedValuesArray.push(select.value);
+                }
+            });
+
+            // If there were no repeated values, enable the submit button and hide the error message
+            if(!repeatedValues) {
+                document.getElementById("submitButton").disabled = false;
+                document.getElementById("errorMsg").style.display = "none";
+            }
+        }
+    </script>
+
+{% endblock %}

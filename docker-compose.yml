@@ -1,0 +1,24 @@
+version: "3.3"
+services:
+  # db:
+  #   image: "mysql:8.0.28-oracle"
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   container_name: "CAMBIARNOMBRE_sql"
+  #   ports:
+  #     - "3306:3306"
+  #   environment:
+  #     MYSQL_DATABASE: django_db
+  #     MYSQL_ROOT_PASSWORD: ludens123
+  #   volumes:
+  #     - "./local_dev_db:/usr/src/db"
+  db:
+    image: "postgres:alpine"
+    container_name: "CAMBIARNOMBRE_sql"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: django_db
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ludens123
+    volumes:
+      - "./local_dev_db:/usr/src/db"

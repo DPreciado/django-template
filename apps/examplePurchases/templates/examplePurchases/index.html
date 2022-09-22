@@ -1,0 +1,252 @@
+{% extends 'base.html' %} {% load static %}
+
+{% block title %}
+    Índice de compras
+{% endblock %}
+
+
+
+{% block css %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/css/theme.bootstrap_4.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+{% endblock %}
+
+
+
+{% block content %}
+    <!-- Start: Ludens - 1 Index Table with Search & Sort Filters -->
+    <div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12 col-sm-6 col-md-6">
+                    <h3 class="text-dark mb-4">Compras</h3>
+                </div>
+
+                <div class="col-12 col-sm-6 col-md-6 text-end" style="margin-bottom: 30px;">
+                    <a class="btn btn-primary" role="button" href="{% url 'examplePurchases:create' %}">
+                        <i class="fa fa-plus"></i> &nbsp;Agregar producto
+                    </a>
+                </div>
+            </div>
+
+            <!-- Start: TableSorter -->
+            <div class="card" id="TableSorterCard">
+                
+                <div class="card-header py-3">
+                    <div class="row table-topper align-items-center">
+                        <div class="col-12 col-sm-5 col-md-6 text-start" style="margin: 0px;padding: 5px 15px;">
+                            <p class="m-0 fw-bold" style="color:#10312b">Lista de las compras</p>
+                        </div>
+                        
+
+                        <form class="search-form w-100" method="get" id="avc_filters">
+                            <div class="row">
+                                <div class="col-md-12 bg-white" style="text-align: left;">
+                                    <div class="row">
+                                        {% for filter_name in filter.form %}
+                                            <div class="col-sm-4 col-md-4 my-3">
+                                                <label class="form-label" style="font-weight: bold;" for="{{ form.zone_name.id_for_label }}">{{ filter_name.label_tag }}</label>
+                                                <div class="input-group">
+                                                    {{ filter_name }}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <div class="text-end" style="margin: 0px;padding: 5px 15px;">
+
+                                            <button class="btn btn-primary btn-sm my-1 mr-1" type="submit">Filtrar</button>
+
+                                            <a href="{{request.path}}" class="btn btn-danger btn-sm reset my-1 mr-1" type="button">Borrar Filtros</a>
+                                            
+                                            <button class="btn btn-warning btn-sm my-1 mr-1" id="zoom_in" type="button" zoomclick="ChangeZoomLevel(-10);">
+                                                <i class="fa fa-search-plus"></i>
+                                            </button>
+                
+                                            <button class="btn btn-warning btn-sm my-1 mr-1" id="zoom_out" type="button" zoomclick="ChangeZoomLevel(-10);">
+                                                <i class="fa fa-search-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <div class="table-responsive">
+                            <table class="table table-striped table tablesorter" id="ipi-table">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th class="text-center">Fecha</th>
+
+                                        <th class="text-center">Gasto</th>
+
+                                        <th class="text-center">Descripcion</th>
+
+                                        <th class="text-center filter-false sorter-false">Acciones</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="text-center">
+                                    {% for purchase in purchases %}
+                                    <tr>
+                                        <td>
+                                            {{purchase.date}}
+                                        </td>
+
+                                        <td>
+                                            {{purchase.total_price}}
+                                        </td>
+
+                                        <td>
+                                            {{purchase.description}}
+                                        </td>
+
+                                        <td class="text-center align-middle" style="max-height: 60px;height: 60px;">
+                                            <a class="btn btnMaterial btn-flat primary semicircle" role="button" href="{% url 'examplePurchases:show' purchase.id %}">
+                                                <i class="far fa-eye"></i>
+                                            </a>
+                                            <a class="btn btnMaterial btn-flat success semicircle" role="button" href="{% url 'examplePurchases:edit' purchase.id %}">
+                                                <i class="fas fa-pen"></i>
+                                            </a>
+
+                                            <a class="btn btnMaterial btn-flat accent btnNoBorders checkboxHover" role="button" style="margin-left: 5px;" data-bs-toggle="modal" onclick="destroy({{purchase.id}})" data-bs-target="#delete-modal" href="#">
+                                                <i class="fas fa-trash btnNoBorders" style="color: #DC3545;"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End: Ludens - 1 Index Table with Search & Sort Filters -->
+
+    <div class="container" style="margin-top: 25px;">
+        <nav class="d-lg-flex justify-content-lg-center">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&lsaquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item">
+                    <a class="page-link" >Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</a>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    </li>
+
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Previous">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+
+
+    <form id="deleteForm" method="post">
+        {% csrf_token %}
+        <div class="modal fade" role="dialog" tabindex="-1" id="delete-modal">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" style="font-size: 20px;">Eliminar Producto</h4>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p style="font-size: 18px;color: rgb(58,59,69);">
+                            Si eliminas este elemento ya no podrás recuperarlo.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancelar</button>
+
+                        <button class="btn btn-danger" type="button" onclick="formSubmit()">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <a class="border rounded d-inline scroll-to-top" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+{% endblock %}
+
+
+
+{% block js %}
+    <!-- Bootstrap core JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/jquery.tablesorter.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-filter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.2/js/widgets/widget-storage.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {% if messages %}
+        {% for message in messages %}
+            <script>
+                let title = "";
+                if("{{message.tags}}" === 'error'){
+                    title = "¡Error!";
+                }
+                if ('{{message.tags}}' === 'success'){
+                    title = "Éxito!";
+                }
+                if ("{{message.tags}}" === 'warning'){
+                    title = "Advertencia!";
+                }
+                if ("{{message.tags}}" === 'info'){
+                    title = "Información";
+                }
+    
+                Swal.fire({
+                    title: title,
+                    text: '{{message}}',
+                    type: '{{message.tags}}',
+                    icon: '{{message.tags}}',
+                    confirmButtonText: 'OK'
+                });
+    
+            </script>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Delete Script -->
+    <script>
+        function destroy(id) {
+            let url = "{% url 'examplePurchases:delete' 1 %}";
+            url = url.replace('1', id);
+            $("#deleteForm").attr('action', url);
+        }
+        function formSubmit() {
+            $("#deleteForm").submit();
+        }
+    </script>
+{% endblock %}

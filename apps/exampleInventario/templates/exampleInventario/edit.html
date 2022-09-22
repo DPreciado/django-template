@@ -1,0 +1,79 @@
+{% extends 'base.html' %} {% load static %}
+
+{% block title %}
+    Edición de Producto en Inventario
+{% endblock %}
+
+
+
+{% block css %}
+
+{% endblock %}
+
+
+
+{% block content %}
+    {% load crispy_forms_tags %}
+
+    <section class="clean-block clean-form dark">
+        <div class="container">
+            <div class="row" style="margin-right: 0px;margin-left: 0px;">
+                <div class="col-md-12" style="margin-bottom: 25px;padding-left: 5%;font-size: 21px;margin-top: 0px;">
+                    <a class="anone" href="{% url 'exampleInventario:index' %}">
+                        <i class="fas fa-long-arrow-alt-left"></i>
+                        <span>&nbsp;Volver</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="block-heading" style="padding-top: 0px;">
+                <h2 class="text-primary">
+                    Añadir producto
+
+                    <br>
+                </h2>
+
+                <p>
+                    Los que tengan el * son datos que se tienen que rellenar obligatoriamente
+                </p>
+            </div>
+
+            <form style="max-width: 700px;" role="form" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <strong>{{ form.non_field_errors }}</strong>
+                        </div>
+                {% endif %}
+
+                {% for  field in form %}
+                
+                <div class="form-group mb-3">
+                    <strong>{{ field|as_crispy_field }}</strong>
+                </div>
+
+                {% endfor %}
+
+                <hr style="margin-top: 30px;margin-bottom: 10px;">
+
+                <div class="form-group mb-3">
+                    <button class="btn btn-primary d-block w-100" id="submitButton" type="submit">
+                        <i class="fas fa-save"></i>
+                        &nbsp;Guardar
+                    </button>
+
+                    <a class="btn btn-danger d-block w-100" role="button" href="{% url 'exampleInventario:index' %}" style="margin-top: 15px;">
+                        <i class="fas fa-arrow-left"></i> &nbsp;Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+
+
+
+{% block js %}
+    
+{% endblock %}

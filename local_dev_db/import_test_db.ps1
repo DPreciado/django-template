@@ -1,0 +1,1 @@
+docker exec CAMBIARNOMBRE_sql bash /usr/src/db/internal_command.sh
